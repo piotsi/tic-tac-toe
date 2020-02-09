@@ -1,96 +1,115 @@
 package main
 
 import (
+	"fmt"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
-	scale      = 2
-	screenSize = 192 * scale
-)
-
-const (
+	scale          = 1
+	tileSize       = 100 * scale
+	screenSize     = tileSize*boardSize + padding*(boardSize+1)
 	boardSize      = 3
-	shapeThickness = 20
+	shapeThickness = 5
+	menuHeight     = 20
+	padding        = 10
 )
 
-// Tile bla
+// Tile parameters
 type Tile struct {
 	position rl.Rectangle
-	state    int32
+	state    string
+	pressed  bool
+	index    int
 }
 
-// Game bla
+// Game parameters
 type Game struct {
 	gameOver bool
 	mousePos rl.Vector2
-	board    [boardSize ^ 2]Tile
+	board    [boardSize][boardSize]Tile
+	turn     string
 }
 
 func main() {
-	rl.InitWindow(screenSize, screenSize, "TIC-TAC-TOE")
-	rl.SetTargetFPS(60)
+	rl.InitWindow(screenSize, screenSize+menuHeight, "TIC-TAC-TOE")
+	rl.SetTargetFPS(100)
 
 	game := NewGame()
 
 	for !rl.WindowShouldClose() {
 		game.Update()
 		game.Draw()
-		// rl.DrawFPS(0, 0)
 	}
 
 	rl.CloseWindow()
 }
 
-// NewGame bla
+// NewGame initialize
 func NewGame() (g Game) {
 	g.Init()
 	return
 }
 
-// Init bla
+// Init method
 func (g *Game) Init() {
 	g.gameOver = false
+	g.turn = "o"
 
-	for i := 0; i < boardSize^2; i++ {
-		g.board[i].position.Width = screenSize / 3
-		g.board[i].position.Height = screenSize / 3
-		// wymyslic jak generowac pozycje
-		g.board[i].position.X = 0
-		g.board[i].position.Y = 0
-		g.board[i].state = 0
+	for i := 0; i < boardSize; i++ {
+		for j := 0; j < boardSize; j++ {
+			g.board[i][j].position.Width = tileSize
+			g.board[i][j].position.Height = tileSize
+			g.board[i][j].position.X = tileSize*float32(i) + float32(padding*(i+1))
+			g.board[i][j].position.Y = tileSize*float32(j) + float32(padding*(j+1))
+			g.board[i][j].index = i + boardSize*j
+			g.board[i][j].state = ""
+		}
 	}
 }
 
-// Update bla
+// Update method
 func (g *Game) Update() {
-	g.gameOver = true
+	g.gameOver = false
 
 	g.mousePos = rl.GetMousePosition()
 
 	// Check if mouse is inside a tile
-	for i := 0; i < boardSize^2; i++ {
-		if rl.CheckCollisionPointRec(g.mousePos, g.board[i].position) {
-			if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-				println("test")
+	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+		fmt.Println("click")
+		for i := 0; i < boardSize; i++ {
+			for j := 0; j < boardSize; j++ {
+				if rl.CheckCollisionPointRec(g.mousePos, g.board[i][j].position) {
+					if g.board[i][j].state == "" {
+						fmt.Println(g.board[i][j].index)
+						g.board[i][j].state = g.turn
+						if g.turn == "x" {
+							g.turn = "o"
+						} else {
+							g.turn = "x"
+						}
+					}
+				}
 			}
 		}
 	}
 }
 
-// Draw bla
+// Draw method
 func (g *Game) Draw() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.White)
 
 	for i := 0; i < boardSize; i++ {
 		for j := 0; j < boardSize; j++ {
-
+			rl.DrawRectangleLinesEx(g.board[i][j].position, shapeThickness, rl.Black)
+			rl.DrawText(fmt.Sprintf("%s", g.board[i][j].state), int32(g.board[i][j].position.X)+tileSize/4, int32(g.board[i][j].position.Y), tileSize, rl.Black)
 		}
 	}
 
-	// Draw mouse position
-	// rl.DrawText(fmt.Sprintf("x=%.0f y=%.0f", rl.GetMousePosition().X, rl.GetMousePosition().Y), 0, 20, 20, rl.Black)
+	//Draw mouse position
+	rl.DrawText(fmt.Sprintf("x=%4.0f y=%4.0f turn=%s", rl.GetMousePosition().X, rl.GetMousePosition().Y, g.turn), 0, 0+screenSize, 20, rl.Black)
 
 	rl.EndDrawing()
 }
